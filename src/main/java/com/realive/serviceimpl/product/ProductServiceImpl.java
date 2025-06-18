@@ -235,8 +235,11 @@ public class ProductServiceImpl implements ProductService {
 
         // 상품 목록 조회 (판매자 전용)
         @Override
-        public PageResponseDTO<ProductListDTO> getProductsBySeller(Long sellerId, ProductSearchCondition condition) {
-                
+        public PageResponseDTO<ProductListDTO> getProductsBySeller(String email, ProductSearchCondition condition) {
+
+                Seller seller = (Seller) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+                Long sellerId = seller.getId();
+
                 Page<Product> result = productRepository.searchProducts(condition, sellerId);
                 List<Product> products = result.getContent();
 
@@ -262,8 +265,10 @@ public class ProductServiceImpl implements ProductService {
         }
 
         @Override
-        public ProductResponseDTO getProductDetail(Long productId, Long sellerId) {
-                
+        public ProductResponseDTO getProductDetail(Long productId) {
+                Seller seller = (Seller) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+                Long sellerId = seller.getId();
+
                 Product product = productRepository.findById(productId)
                                 .orElseThrow(() -> new IllegalArgumentException("상품을 찾을 수 없습니다."));
 

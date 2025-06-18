@@ -48,8 +48,7 @@ public class AdminJwtAuthenticationFilter extends OncePerRequestFilter {
                     String role = claims.get("auth", String.class);
 
                     if (email != null && adminId != null && role != null) {
-                        Admin adminForPrincipal = Admin.builder().id(adminId.intValue()).email(email).build();
-                        AdminPrincipal adminPrincipal = new AdminPrincipal(adminForPrincipal);
+                        Admin adminPrincipal = Admin.builder().id(adminId.intValue()).email(email).build();
                         List<GrantedAuthority> authorities = List.of(new SimpleGrantedAuthority(role));
                         Authentication authentication = new UsernamePasswordAuthenticationToken(adminPrincipal, null, authorities);
                         SecurityContextHolder.getContext().setAuthentication(authentication);
