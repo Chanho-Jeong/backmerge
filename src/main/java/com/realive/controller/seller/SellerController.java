@@ -2,6 +2,7 @@ package com.realive.controller.seller;
 
 import java.time.Duration;
 
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseCookie;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -47,10 +48,29 @@ public class SellerController {
 
     // 🔐 로그인 (토큰 발급)
     @PostMapping("/login")
-    public ResponseEntity<SellerLoginResponseDTO> login(@RequestBody @Valid SellerLoginRequestDTO request) {
-        // 컨트롤러는 이제 서비스의 login 메서드를 호출하고 결과만 받습니다.
-        SellerLoginResponseDTO responseDto = sellerService.login(request);
-        return ResponseEntity.ok(responseDto);
+    public ResponseEntity<SellerLoginResponseDTO> login(@RequestBody @Valid SellerLoginRequestDTO request, HttpServletResponse response) {
+    
+    // 1. 서비스에서 두 토큰을 받아옴
+    SellerLoginResponseDTO tokens = sellerService.login(request);
+
+    // 2. 리프레시 토큰 → **HTTP-only 쿠키**로만 내려보냄
+    ResponseCookie refreshCookie = ResponseCookie.from("refresh_token", tokens.getRefreshToken())
+            .httpOnly(true)         // JS 접근 차단
+            .secure(true)           // HTTPS 전용
+            .sameSite("Lax")        // POST 리다이렉트 허용
+            .path("/")              // 전체 경로
+            .maxAge(60 * 60 * 24 * 7) // 7일
+            .build();
+    response.addHeader(HttpHeaders.SET_COOKIE, refreshCookie.toString());
+
+    // 3. 액세스 토큰은 **Authorization 헤더**로 넣어 줌
+    response.setHeader(HttpHeaders.AUTHORIZATION,
+            JwtUtil.BEARER_PREFIX + tokens.getAccessToken());
+
+    // 4. 프런트에 리프레시 토큰은 굳이 보낼 필요 없으므로 null 처리
+    tokens.setRefreshToken(null);
+
+    return ResponseEntity.ok(tokens); // 액세스 토큰만 본문에 포함
     }
 
     // 로그아웃 (토큰 덮어쓰기)
